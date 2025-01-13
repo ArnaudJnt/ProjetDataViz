@@ -12,8 +12,12 @@ from wordcloud import WordCloud
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, roc_auc_score, roc_curve
 from xgboost import XGBClassifier
-from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, roc_curve
 
 st.title("Accidents de la route en 2023")
 
@@ -24,9 +28,8 @@ st.sidebar.markdown("""
 - [📂 Chargement des Données](#chargement-des-données)
 - [📝 Description des Variables](#description-des-variables)
 - [🌍 Carte Interactive](#carte-interactive)
-- [🔍 Analyse Bivariée](#analyse-bivariée)
+- [🔍 Analyse Descriptive] (#analyse)
 - [📊 Évolution Temporelle des Accidents](#evolution-temporelle)
-- [📈 Machine Learning](#analyse-bivariée)
 """)
 
 st.markdown("## 🏠 Introduction")
@@ -432,8 +435,17 @@ variables_disponibles = {
     "dep": "Département",
     "jour_semaine": "Jour de la Semaine"
 }
-st.markdown("## 🔍 Analyse Bivariée")
-# Choix de la variable
+st.markdown("## 🔍 Analyse Descriptive")
+# Ajout de l'option pour le camembert
+variables_disponibles = {
+    "plage_horaire": "Plage Horaire",
+    "catv": "Catégorie de Véhicules",
+    "dep": "Département",
+    "jour_semaine": "Jour de la Semaine",
+    "pie_grav": "Camembert (Répartition par Gravité)"
+}
+
+# Sélection de la variable
 variable_choisie = st.selectbox(
     "Choisissez une variable pour analyser la gravité des accidents :",
     options=list(variables_disponibles.keys()),
@@ -524,6 +536,24 @@ elif variable_choisie == "jour_semaine":
     plt.yticks(fontsize=12)
     st.pyplot(fig)
 
+elif variable_choisie == "pie_grav":
+    # Création et affichage du camembert (pie chart)
+    grav_count = accidents_motorises['grav_desc'].value_counts().reset_index()
+    grav_count.columns = ['Gravité', 'Nombre d\'accidents']
+
+    fig = px.pie(
+        grav_count,
+        values='Nombre d\'accidents',
+        names='Gravité',
+        title="Répartition des Accidents par Gravité",
+        color_discrete_sequence=px.colors.sequential.RdBu,
+        template="presentation",
+        hole=0.4  # Donut chart
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+
+
 # Evolution temporelle des accidents
 st.markdown("## 📊 Évolution Temporelle des Accidents")
 
@@ -575,84 +605,32 @@ fig.update_layout(
 # Afficher le graphique
 st.plotly_chart(fig, use_container_width=True)
 
-
-st.markdown("## 📈 Machine Learning")
-
-# Diviser les données en échantillons d'entraînement et de test
-@st.cache_data
-def prepare_data(data):
-    X = data.drop("target", axis=1)  # Remplace "target" par le nom de la colonne cible
-    y = data["target"]
-    return train_test_split(X, y, test_size=0.3, random_state=42)
-
-X_train, X_test, y_train, y_test = prepare_data(accidents_motorises)
-
-# Fonction pour exécuter un modèle et afficher les graphiques associés
-def run_model(model, model_name):
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    y_proba = model.predict_proba(X_test)[:, 1]
-
-    # Rapport de classification
-    report = classification_report(y_test, y_pred, output_dict=True)
-    st.subheader(f"Performance du modèle : {model_name}")
-    st.text(classification_report(y_test, y_pred))
-
-    # Matrice de confusion
-    st.subheader("Matrice de confusion")
-    conf_matrix = confusion_matrix(y_test, y_pred)
-    plt.figure(figsize=(6, 4))
-    sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", xticklabels=["Classe 0", "Classe 1"], yticklabels=["Classe 0", "Classe 1"])
-    plt.xlabel("Prédictions")
-    plt.ylabel("Réel")
-    plt.title("Matrice de confusion")
-    st.pyplot(plt)
-
-    # Courbe ROC et AUC
-    fpr, tpr, _ = roc_curve(y_test, y_proba)
-    roc_auc = roc_auc_score(y_test, y_proba)
-    st.subheader("Courbe ROC")
-    plt.figure()
-    plt.plot(fpr, tpr, label=f"AUC = {roc_auc:.2f}")
-    plt.plot([0, 1], [0, 1], "--", color="gray")
-    plt.xlabel("Taux de faux positifs (FPR)")
-    plt.ylabel("Taux de vrais positifs (TPR)")
-    plt.title("Courbe ROC")
-    plt.legend(loc="lower right")
-    st.pyplot(plt)
-
-    # Variables les plus influentes (si applicable)
-    if hasattr(model, "feature_importances_"):
-        st.subheader("Variables les plus influentes")
-        importance = pd.DataFrame({
-            "Variable": X_train.columns,
-            "Importance": model.feature_importances_
-        }).sort_values(by="Importance", ascending=False)
-
-        # Affichage des variables importantes sous forme de bar chart
-        st.bar_chart(importance.set_index("Variable"))
-
-# Interface utilisateur Streamlit
-st.title("Analyse Machine Learning des Accidents")
-st.markdown("Choisissez un modèle de machine learning pour analyser les données d'accidents.")
-
-model_choice = st.selectbox(
-    "Sélectionnez un modèle :",
-    ["Random Forest", "XGBoost", "Régression Logistique"]
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.histplot(
+    accidents_motorises_idf['heure'],
+    kde=True,  # Ajout de la courbe de densité
+    bins=24,
+    color="#FF5733",
+    alpha=0.8,
+    ax=ax
 )
+ax.set_title("Distribution des Accidents par Heure de la Journée", fontsize=16, fontweight='bold')
+ax.set_xlabel("Heure", fontsize=14)
+ax.set_ylabel("Fréquence", fontsize=14)
+plt.xticks(range(0, 24, 2))
+st.pyplot(fig)
 
-if model_choice == "Random Forest":
-    st.markdown("**Modèle Random Forest :** Utilise plusieurs arbres de décision pour obtenir des prédictions robustes.")
-    model = RandomForestClassifier(random_state=42)
-    run_model(model, "Random Forest")
+monthly_data = accidents_motorises.groupby(['mois', 'grav_desc']).size().reset_index(name='count')
+fig = px.line(
+    monthly_data,
+    x='mois',
+    y='count',
+    color='grav_desc',
+    title="Évolution Mensuelle des Accidents par Gravité",
+    markers=True,
+    line_shape='spline',
+    color_discrete_sequence=px.colors.qualitative.Dark24
+)
+st.plotly_chart(fig, use_container_width=True)
 
-elif model_choice == "XGBoost":
-    st.markdown("**Modèle XGBoost :** Un algorithme de boosting performant pour les grandes bases de données.")
-    model = XGBClassifier(use_label_encoder=False, eval_metric="logloss", random_state=42)
-    run_model(model, "XGBoost")
-
-elif model_choice == "Régression Logistique":
-    st.markdown("**Régression Logistique :** Un modèle statistique simple pour prédire une variable binaire.")
-    model = LogisticRegression()
-    run_model(model, "Régression Logistique")
 
