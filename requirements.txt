@@ -1,1 +1,14 @@
 streamlit
+pandas
+plotly
+folium
+streamlit-folium
+seaborn
+matplotlib
+geopandas
+wordcloud
+shapely
+fiona
+pyproj
+rtree
+
