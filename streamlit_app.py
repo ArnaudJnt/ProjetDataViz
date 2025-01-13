@@ -14,6 +14,39 @@ import matplotlib.pyplot as plt
 
 st.title("Accidents de la route en 2023")
 
+st.markdown("""
+Les données utilisées proviennent de **l'INSEE** et concernent les **accidents de la route en France en 2023**. Elles sont organisées de la façon suivante :
+
+### 📂 Caractéristiques (caract-2023.csv)
+- Ce fichier contient des informations générales sur chaque accident, telles que :
+    - **Date** et **heure** de l'accident,
+    - **Conditions de luminosité** (lum),
+    - **Conditions atmosphériques** (atm),
+    - **Type de collision** (col).
+- Ces données permettent de comprendre le contexte global dans lequel chaque accident s’est produit.
+
+### 🌍 Lieux (lieux-2023.csv)
+- Ce fichier décrit les caractéristiques du lieu de l’accident :
+    - **Catégorie de route** (catr),
+    - **Profil de la route** (prof),
+    - **État de la surface** (surf),
+    - **Localisation précise de l’accident** (situ).
+- Ces informations sont essentielles pour analyser l’influence de l’environnement sur les accidents.
+
+### 🚗 Véhicules (vehicules-2023.csv)
+- Ce fichier recense les informations sur les véhicules impliqués dans chaque accident :
+    - **Catégorie du véhicule** (catv),
+    - **Point initial du choc** (choc),
+    - **Manœuvre réalisée avant l’accident** (manv).
+
+### 👥 Usagers (usagers-2023.csv)
+- Ce fichier contient des informations sur les usagers impliqués dans les accidents, incluant :
+    - Leur **position dans le véhicule** (place),
+    - Leur **catégorie** (catu),
+    - Leur **gravité** (grav),
+    - Leur **sexe** (sexe).
+""")
+
 # Sommaire interactif
 st.sidebar.title("Sommaire")
 st.sidebar.markdown("""
