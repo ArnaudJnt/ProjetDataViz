@@ -8,7 +8,9 @@ from folium.plugins import MarkerCluster
 from streamlit_folium import st_folium    
 import seaborn as sns
 import matplotlib.pyplot as plt
-
+import geopandas as gpd
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
 
 st.title("Accidents de la route en 2023")
 
@@ -22,6 +24,7 @@ st.sidebar.markdown("""
     - [France](#carte-île-de-france)
     - [Île-de-France](#carte-île-de-france)
 - [🔍 Analyse Bivariée](#analyse-bivariée)
+- [📊 Évolution Temporelle des Accidents](#evolution-temporelle)
 - [📈 Machine Learning](#analyse-bivariée)
 """)
 
@@ -351,7 +354,6 @@ else:
     st.warning("Aucune donnée disponible pour le département sélectionné.")
 
 
-
 # Ajouter une description de la gravité
 gravite_dict = {
     1: "Indemne",
@@ -403,7 +405,7 @@ variables_disponibles = {
     "dep": "Département",
     "jour_semaine": "Jour de la Semaine"
 }
-
+st.markdown("## 🔍 Analyse Bivariée")
 # Choix de la variable
 variable_choisie = st.selectbox(
     "Choisissez une variable pour analyser la gravité des accidents :",
@@ -494,3 +496,104 @@ elif variable_choisie == "jour_semaine":
     plt.xticks(fontsize=12, rotation=45)
     plt.yticks(fontsize=12)
     st.pyplot(fig)
+
+# Evolution temporelle des accidents
+st.markdown("## 📊 Évolution Temporelle des Accidents")
+
+# Préparer les données temporelles
+time_analysis = accidents_motorises.groupby(['mois', 'jour']).size().reset_index(name='count')
+time_analysis['date'] = pd.to_datetime(
+    {'year': 2023, 'month': time_analysis['mois'], 'day': time_analysis['jour']}
+)
+
+# Trier les données par date
+time_analysis = time_analysis.sort_values('date')
+
+# Créer le graphique avec Plotly
+fig = px.line(
+    time_analysis,
+    x='date',
+    y='count',
+    title="Évolution temporelle des accidents en 2023",
+    labels={'date': 'Date', 'count': "Nombre d'accidents"},
+    markers=True,  # Ajouter des marqueurs
+    line_shape='spline',  # Lissage de la courbe
+    color_discrete_sequence=["#FF5733"]  # Couleur vibrante
+)
+
+
+# Mettre à jour le design du graphique
+fig.update_layout(
+    title=dict(
+        text="Évolution temporelle des accidents en 2023",
+        font=dict(size=20, color="#333", family="Arial")
+    ),
+    xaxis=dict(
+        title="Date",
+        showgrid=True,
+        gridcolor="rgba(200,200,200,0.3)",
+        tickformat="%b %d",  # Afficher le mois et le jour
+        tickangle=-45
+    ),
+    yaxis=dict(
+        title="Nombre d'accidents",
+        showgrid=True,
+        gridcolor="rgba(200,200,200,0.3)"
+    ),
+    plot_bgcolor="white",  # Arrière-plan blanc
+    margin=dict(l=50, r=50, t=80, b=50),
+    hovermode="x unified"  # Info survol unifiée
+)
+
+# Afficher le graphique
+st.plotly_chart(fig, use_container_width=True)
+
+
+st.markdown("### ☁️ Nuage de mots : Analyse des Départements")
+
+# Vérifier qu'il y a des données dans la colonne 'dep'
+if not accidents_motorises['dep'].isna().all():
+    # Remplacer les codes des départements par leur nom
+    department_names = {
+        75: "Paris",
+        77: "Seine-et-Marne",
+        78: "Yvelines",
+        91: "Essonne",
+        92: "Hauts-de-Seine",
+        93: "Seine-Saint-Denis",
+        94: "Val-de-Marne",
+        95: "Val-d'Oise"
+    }
+    accidents_motorises['dep_name'] = accidents_motorises['dep'].map(department_names)
+
+    # Supprimer les départements non inclus dans le mapping
+    accidents_motorises = accidents_motorises.dropna(subset=['dep_name'])
+
+    # Compter les occurrences de chaque département
+    dep_counts = accidents_motorises['dep_name'].value_counts()
+
+    # Créer une chaîne de texte pondérée pour le Word Cloud
+    text_data = " ".join([f"{dep} " * count for dep, count in dep_counts.items()])
+
+    # Créer le Word Cloud
+    wordcloud = WordCloud(
+        width=800,
+        height=400,
+        background_color="white",
+        colormap="plasma",
+        max_words=100,
+        contour_color="black"
+    ).generate(text_data)
+
+    # Afficher le Word Cloud
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.imshow(wordcloud, interpolation="bilinear")
+    ax.axis("off")  # Pas de bordure
+    ax.set_title("Nuage de mots des départements d'Ile de France les plus accidentés", fontsize=16, fontweight="bold")
+    st.pyplot(fig)
+else:
+    st.warning("Pas de données suffisantes pour créer un nuage de mots des départements.")
+
+
+
+st.markdown("## 📈 Machine Learning")
