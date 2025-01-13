@@ -11,7 +11,6 @@ import geopandas as gpd
 
 st.title("Accidents de la route en 2023")
 
-# Sommaire interactif
 st.sidebar.title("Sommaire")
 st.sidebar.markdown("""
 - [🏠 Introduction](#introduction)
@@ -21,6 +20,7 @@ st.sidebar.markdown("""
 - [🔍 Analyse Descriptive](#analyse-descriptive)
 - [📊 Évolution Temporelle des Accidents](#evolution-temporelle)
 """)
+
 
 st.markdown("## 🏠 Introduction")
 st.markdown("""
