@@ -8,16 +8,6 @@ from streamlit_folium import st_folium
 import seaborn as sns
 import matplotlib.pyplot as plt
 import geopandas as gpd
-from wordcloud import WordCloud
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.pipeline import Pipeline
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, roc_auc_score, roc_curve
-from xgboost import XGBClassifier
 
 st.title("Accidents de la route en 2023")
 
