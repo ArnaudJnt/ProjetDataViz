@@ -18,7 +18,7 @@ st.sidebar.markdown("""
 - [📂 Chargement des Données](#chargement-des-données)
 - [📝 Description des Variables](#description-des-variables)
 - [🌍 Carte Interactive](#carte-interactive)
-- [🔍 Analyse Descriptive] (#analyse)
+- [🔍 Analyse Descriptive](#analyse-descriptive)
 - [📊 Évolution Temporelle des Accidents](#evolution-temporelle)
 """)
 
