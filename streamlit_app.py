@@ -283,7 +283,6 @@ if file_choice:
 
 st.markdown("## 🌍 Carte Interactive")
 st.markdown("### Carte de France")
-
 # Ajout de la description de la gravité
 gravite_dict = {
     1: "Blessé léger",
@@ -316,6 +315,19 @@ fig = px.scatter_mapbox(
 )
 
 fig.update_layout(legend_title="Gravité")
+
+st.markdown(
+    """
+    ### Observations géographiques :
+    
+    - Une **forte proportion** d'accidents ayant pour gravité **indemne** et **tué** est observée dans l'ensemble du territoire.
+    
+    - La région parisienne (**Île-de-France**) montre une **concentration particulièrement élevée** d'accidents avec des usagers **indemnes**.
+    
+    - **Aucune tendance géographique claire** n'apparaît pour les autres niveaux de gravité (**blessé léger** ou **blessé hospitalisé**), car ils semblent **uniformément répartis**.
+    
+    """
+)
 
 # Affichage de la carte dans Streamlit
 st.plotly_chart(fig, use_container_width=True)
@@ -418,15 +430,10 @@ jours_traduction = {
 accidents_motorises_idf['jour_semaine'] = accidents_motorises_idf['jour_semaine_en'].map(jours_traduction)
 
 
-# Variables disponibles pour l'analyse
-variables_disponibles = {
-    "plage_horaire": "Plage Horaire",
-    "catv": "Catégorie de Véhicules",
-    "dep": "Département",
-    "jour_semaine": "Jour de la Semaine"
-}
+
 st.markdown("## 🔍 Analyse Descriptive")
-# Ajout de l'option pour le camembert
+
+# Dictionnaire pour l'affichage des variables
 variables_disponibles = {
     "plage_horaire": "Plage Horaire",
     "catv": "Catégorie de Véhicules",
@@ -435,118 +442,126 @@ variables_disponibles = {
     "pie_grav": "Camembert (Répartition par Gravité)"
 }
 
-# Sélection de la variable
-variable_choisie = st.selectbox(
-    "Choisissez une variable pour analyser la gravité des accidents :",
-    options=list(variables_disponibles.keys()),
-    format_func=lambda x: variables_disponibles[x]
+# 5. Camembert (Répartition par Gravité)
+st.markdown("### Répartition des Accidents par Gravité")
+grav_count = accidents_motorises['grav_desc'].value_counts().reset_index()
+grav_count.columns = ['Gravité', 'Nombre d\'accidents']
+
+fig = px.pie(
+    grav_count,
+    values='Nombre d\'accidents',
+    names='Gravité',
+    title="Répartition des Accidents par Gravité",
+    color_discrete_sequence=px.colors.sequential.RdBu,
+    template="presentation",
+    hole=0.4  # Donut chart
+)
+st.plotly_chart(fig, use_container_width=True)
+# Analyse des différentes options (sans menu déroulant)
+# 1. Plage Horaire
+st.markdown("### Répartition des Accidents par Plage Horaire et Gravité")
+heatmap_data = pd.crosstab(
+    accidents_motorises_idf["plage_horaire"],
+    accidents_motorises_idf["grav_desc"],
+    normalize='index'
 )
 
-# Analyse dynamique
-if variable_choisie in ["plage_horaire", "catv", "dep"]:
-    # Créer une table de fréquence pour la heatmap
-    heatmap_data = pd.crosstab(
-        accidents_motorises_idf[variable_choisie],
-        accidents_motorises_idf['grav_desc'],
-        normalize='index'
-    )
+heatmap_data = heatmap_data.reindex(["Matin (6h-12h)", "Après-midi (12h-18h)", "Soir (18h-6h)"])
 
-    # Trier les plages horaires si la variable choisie est "plage_horaire"
-    if variable_choisie == "plage_horaire":
-        heatmap_data = heatmap_data.reindex(["Matin (6h-12h)", "Après-midi (12h-18h)", "Soir (18h-6h)"])
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.heatmap(
+    heatmap_data,
+    annot=True,
+    fmt=".2f",
+    cmap="YlOrRd",
+    cbar_kws={'label': 'Proportion'},
+    linewidths=0.5,
+    ax=ax
+)
+ax.set_title("Répartition des Accidents par Gravité et Plage Horaire", fontsize=16, fontweight='bold')
+ax.set_xlabel("Gravité", fontsize=14)
+ax.set_ylabel("Plage Horaire", fontsize=14)
+plt.xticks(fontsize=12, rotation=45)
+plt.yticks(fontsize=12)
+st.pyplot(fig)
 
-    # Si l'utilisateur choisit "dep", afficher les noms des départements
-    if variable_choisie == "dep":
-        heatmap_data.index = heatmap_data.index.map({
-            75: "Paris",
-            77: "Seine-et-Marne",
-            78: "Yvelines",
-            91: "Essonne",
-            92: "Hauts-de-Seine",
-            93: "Seine-Saint-Denis",
-            94: "Val-de-Marne",
-            95: "Val-d'Oise"
-        })
 
-    # Affichage de la heatmap
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.heatmap(
-        heatmap_data,
-        annot=True,
-        fmt=".2f",
-        cmap="YlOrRd",
-        cbar_kws={'label': 'Proportion'},
-        linewidths=0.5,
-        ax=ax
-    )
-    ax.set_title(f"Répartition des Accidents par Gravité et {variables_disponibles[variable_choisie]}", fontsize=14)
-    ax.set_xlabel("Gravité", fontsize=12)
-    ax.set_ylabel(variables_disponibles[variable_choisie], fontsize=12)
-    plt.xticks(fontsize=10, rotation=45)
-    plt.yticks(fontsize=10)
-    st.pyplot(fig)
 
-elif variable_choisie == "jour_semaine":
-    # Réorganiser les jours dans l'ordre français
-    jours_ordre = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
+# 3. Département
+st.markdown("### Répartition des Accidents par Département et Gravité")
+heatmap_data = pd.crosstab(
+    accidents_motorises_idf["dep"],
+    accidents_motorises_idf["grav_desc"],
+    normalize='index'
+)
 
-    # Préparer les données pour le graphique empilé
-    stacked_data = pd.crosstab(
-        accidents_motorises_idf['jour_semaine'],
-        accidents_motorises_idf['grav_desc']
-    )
-    stacked_data = stacked_data.reindex(jours_ordre)  # Réorganiser les jours
+# Renommer les départements
+heatmap_data.index = heatmap_data.index.map({
+    75: "Paris",
+    77: "Seine-et-Marne",
+    78: "Yvelines",
+    91: "Essonne",
+    92: "Hauts-de-Seine",
+    93: "Seine-Saint-Denis",
+    94: "Val-de-Marne",
+    95: "Val-d'Oise"
+})
 
-    # Palette de couleurs
-    colors = ["#ffcc66", "#ff9966", "#FFFF00", "#ff3333"]
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.heatmap(
+    heatmap_data,
+    annot=True,
+    fmt=".2f",
+    cmap="YlOrRd",
+    cbar_kws={'label': 'Proportion'},
+    linewidths=0.5,
+    ax=ax
+)
+ax.set_title("Répartition des Accidents par Gravité et Département", fontsize=16, fontweight='bold')
+ax.set_xlabel("Gravité", fontsize=14)
+ax.set_ylabel("Département", fontsize=14)
+plt.xticks(fontsize=12, rotation=45)
+plt.yticks(fontsize=12)
+st.pyplot(fig)
 
-    # Graphique empilé
-    st.subheader("Distribution des Accidents par Jour de la Semaine")
-    fig, ax = plt.subplots(figsize=(12, 6))
-    stacked_data.plot(
-        kind='bar',
-        stacked=True,
-        figsize=(12, 6),
-        color=colors,
-        ax=ax
-    )
-
-    # Personnaliser le graphique
-    ax.set_title("Distribution des Accidents par Jour de la Semaine", fontsize=16, fontweight='bold')
-    ax.set_xlabel("Jour de la Semaine", fontsize=14)
-    ax.set_ylabel("Nombre d'Accidents", fontsize=14)
-    ax.legend(
-        title="Gravité",
-        fontsize=12,
-        title_fontsize=14,
-        loc='upper left',
-        bbox_to_anchor=(1.05, 1)
-    )
-    plt.xticks(fontsize=12, rotation=45)
-    plt.yticks(fontsize=12)
-    st.pyplot(fig)
-
-elif variable_choisie == "pie_grav":
-    # Création et affichage du camembert (pie chart)
-    grav_count = accidents_motorises['grav_desc'].value_counts().reset_index()
-    grav_count.columns = ['Gravité', 'Nombre d\'accidents']
-
-    fig = px.pie(
-        grav_count,
-        values='Nombre d\'accidents',
-        names='Gravité',
-        title="Répartition des Accidents par Gravité",
-        color_discrete_sequence=px.colors.sequential.RdBu,
-        template="presentation",
-        hole=0.4  # Donut chart
-    )
-    st.plotly_chart(fig, use_container_width=True)
 
 
 
 # Evolution temporelle des accidents
 st.markdown("## 📊 Évolution Temporelle des Accidents")
 
+# 4. Jour de la Semaine
+st.markdown("### Distribution des Accidents par Jour de la Semaine")
+jours_ordre = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
+stacked_data = pd.crosstab(
+    accidents_motorises_idf["jour_semaine"],
+    accidents_motorises_idf["grav_desc"]
+)
+stacked_data = stacked_data.reindex(jours_ordre)
+
+colors = ["#ffcc66", "#ff9966", "#FFFF00", "#ff3333"]
+
+fig, ax = plt.subplots(figsize=(12, 6))
+stacked_data.plot(
+    kind='bar',
+    stacked=True,
+    figsize=(12, 6),
+    color=colors,
+    ax=ax
+)
+ax.set_title("Distribution des Accidents par Jour de la Semaine", fontsize=16, fontweight='bold')
+ax.set_xlabel("Jour de la Semaine", fontsize=14)
+ax.set_ylabel("Nombre d'Accidents", fontsize=14)
+ax.legend(
+    title="Gravité",
+    fontsize=12,
+    title_fontsize=14,
+    loc='upper left',
+    bbox_to_anchor=(1.05, 1)
+)
+plt.xticks(fontsize=12, rotation=45)
+plt.yticks(fontsize=12)
+st.pyplot(fig)
 # Préparer les données temporelles
 time_analysis = accidents_motorises.groupby(['mois', 'jour']).size().reset_index(name='count')
 time_analysis['date'] = pd.to_datetime(
