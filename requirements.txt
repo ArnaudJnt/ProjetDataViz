@@ -1,5 +1,6 @@
 streamlit
 pandas
+numpy
 plotly
 folium
 streamlit-folium
@@ -7,6 +8,8 @@ seaborn
 matplotlib
 geopandas
 wordcloud
+scikit-learn
+xgboost
 shapely
 fiona
 pyproj

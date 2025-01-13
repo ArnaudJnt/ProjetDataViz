@@ -1,16 +1,19 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
-import streamlit as st            
-import pandas as pd               
-import folium                     
-from folium.plugins import MarkerCluster  
-from streamlit_folium import st_folium    
+import folium
+from folium.plugins import MarkerCluster
+from streamlit_folium import st_folium
 import seaborn as sns
 import matplotlib.pyplot as plt
 import geopandas as gpd
 from wordcloud import WordCloud
-import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from xgboost import XGBClassifier
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, roc_curve
 
 st.title("Accidents de la route en 2023")
 
@@ -21,8 +24,6 @@ st.sidebar.markdown("""
 - [📂 Chargement des Données](#chargement-des-données)
 - [📝 Description des Variables](#description-des-variables)
 - [🌍 Carte Interactive](#carte-interactive)
-    - [France](#carte-île-de-france)
-    - [Île-de-France](#carte-île-de-france)
 - [🔍 Analyse Bivariée](#analyse-bivariée)
 - [📊 Évolution Temporelle des Accidents](#evolution-temporelle)
 - [📈 Machine Learning](#analyse-bivariée)
@@ -575,51 +576,83 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 
-st.markdown("### ☁️ Nuage de mots : Analyse des Départements")
-
-# Vérifier qu'il y a des données dans la colonne 'dep'
-if not accidents_motorises['dep'].isna().all():
-    # Remplacer les codes des départements par leur nom
-    department_names = {
-        75: "Paris",
-        77: "Seine-et-Marne",
-        78: "Yvelines",
-        91: "Essonne",
-        92: "Hauts-de-Seine",
-        93: "Seine-Saint-Denis",
-        94: "Val-de-Marne",
-        95: "Val-d'Oise"
-    }
-    accidents_motorises['dep_name'] = accidents_motorises['dep'].map(department_names)
-
-    # Supprimer les départements non inclus dans le mapping
-    accidents_motorises = accidents_motorises.dropna(subset=['dep_name'])
-
-    # Compter les occurrences de chaque département
-    dep_counts = accidents_motorises['dep_name'].value_counts()
-
-    # Créer une chaîne de texte pondérée pour le Word Cloud
-    text_data = " ".join([f"{dep} " * count for dep, count in dep_counts.items()])
-
-    # Créer le Word Cloud
-    wordcloud = WordCloud(
-        width=800,
-        height=400,
-        background_color="white",
-        colormap="plasma",
-        max_words=100,
-        contour_color="black"
-    ).generate(text_data)
-
-    # Afficher le Word Cloud
-    fig, ax = plt.subplots(figsize=(12, 6))
-    ax.imshow(wordcloud, interpolation="bilinear")
-    ax.axis("off")  # Pas de bordure
-    ax.set_title("Nuage de mots des départements d'Ile de France les plus accidentés", fontsize=16, fontweight="bold")
-    st.pyplot(fig)
-else:
-    st.warning("Pas de données suffisantes pour créer un nuage de mots des départements.")
-
-
-
 st.markdown("## 📈 Machine Learning")
+
+# Diviser les données en échantillons d'entraînement et de test
+@st.cache_data
+def prepare_data(data):
+    X = data.drop("target", axis=1)  # Remplace "target" par le nom de la colonne cible
+    y = data["target"]
+    return train_test_split(X, y, test_size=0.3, random_state=42)
+
+X_train, X_test, y_train, y_test = prepare_data(accidents_motorises)
+
+# Fonction pour exécuter un modèle et afficher les graphiques associés
+def run_model(model, model_name):
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    y_proba = model.predict_proba(X_test)[:, 1]
+
+    # Rapport de classification
+    report = classification_report(y_test, y_pred, output_dict=True)
+    st.subheader(f"Performance du modèle : {model_name}")
+    st.text(classification_report(y_test, y_pred))
+
+    # Matrice de confusion
+    st.subheader("Matrice de confusion")
+    conf_matrix = confusion_matrix(y_test, y_pred)
+    plt.figure(figsize=(6, 4))
+    sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", xticklabels=["Classe 0", "Classe 1"], yticklabels=["Classe 0", "Classe 1"])
+    plt.xlabel("Prédictions")
+    plt.ylabel("Réel")
+    plt.title("Matrice de confusion")
+    st.pyplot(plt)
+
+    # Courbe ROC et AUC
+    fpr, tpr, _ = roc_curve(y_test, y_proba)
+    roc_auc = roc_auc_score(y_test, y_proba)
+    st.subheader("Courbe ROC")
+    plt.figure()
+    plt.plot(fpr, tpr, label=f"AUC = {roc_auc:.2f}")
+    plt.plot([0, 1], [0, 1], "--", color="gray")
+    plt.xlabel("Taux de faux positifs (FPR)")
+    plt.ylabel("Taux de vrais positifs (TPR)")
+    plt.title("Courbe ROC")
+    plt.legend(loc="lower right")
+    st.pyplot(plt)
+
+    # Variables les plus influentes (si applicable)
+    if hasattr(model, "feature_importances_"):
+        st.subheader("Variables les plus influentes")
+        importance = pd.DataFrame({
+            "Variable": X_train.columns,
+            "Importance": model.feature_importances_
+        }).sort_values(by="Importance", ascending=False)
+
+        # Affichage des variables importantes sous forme de bar chart
+        st.bar_chart(importance.set_index("Variable"))
+
+# Interface utilisateur Streamlit
+st.title("Analyse Machine Learning des Accidents")
+st.markdown("Choisissez un modèle de machine learning pour analyser les données d'accidents.")
+
+model_choice = st.selectbox(
+    "Sélectionnez un modèle :",
+    ["Random Forest", "XGBoost", "Régression Logistique"]
+)
+
+if model_choice == "Random Forest":
+    st.markdown("**Modèle Random Forest :** Utilise plusieurs arbres de décision pour obtenir des prédictions robustes.")
+    model = RandomForestClassifier(random_state=42)
+    run_model(model, "Random Forest")
+
+elif model_choice == "XGBoost":
+    st.markdown("**Modèle XGBoost :** Un algorithme de boosting performant pour les grandes bases de données.")
+    model = XGBClassifier(use_label_encoder=False, eval_metric="logloss", random_state=42)
+    run_model(model, "XGBoost")
+
+elif model_choice == "Régression Logistique":
+    st.markdown("**Régression Logistique :** Un modèle statistique simple pour prédire une variable binaire.")
+    model = LogisticRegression()
+    run_model(model, "Régression Logistique")
+
