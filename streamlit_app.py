@@ -103,6 +103,9 @@ if caract_df is not None and lieux_df is not None and vehicules_df is not None a
 else:
     st.error("Un ou plusieurs fichiers n'ont pas pu être chargés. Vérifiez leur emplacement ou leur contenu.")
 
+# Réduire la base de données de 50 % aléatoirement
+accidents_motorises = accidents_motorises.sample(frac=0.5, random_state=42)
+
 st.markdown("<a id='description-des-variables'></a>", unsafe_allow_html=True)
 st.markdown("## 📝 Description des Variables")
 # Dictionnaire contenant les descriptions des variables pour chaque fichier
@@ -476,6 +479,7 @@ st.plotly_chart(fig, use_container_width=True)
 
 # 3. Département
 # Création des données pour la heatmap
+st.markdown("### Répartition des Accidents par Département")
 heatmap_data = pd.crosstab(
     accidents_motorises_idf["dep"],
     accidents_motorises_idf["grav_desc"],
@@ -572,6 +576,7 @@ plt.yticks(fontsize=12, color='white')
 st.pyplot(fig)
 
 
+st.markdown("### Evolution Temporelle des Accidents en 2023 ")
 
 # Préparer les données temporelles
 time_analysis = accidents_motorises.groupby(['mois', 'jour']).size().reset_index(name='count')
@@ -587,7 +592,7 @@ fig = px.line(
     time_analysis,
     x='date',
     y='count',
-    title="Évolution temporelle des accidents en 2023",
+    title=" ",
     labels={'date': 'Date', 'count': "Nombre d'accidents"},
     markers=True,  # Ajouter des marqueurs
     line_shape='spline',  # Lissage de la courbe
@@ -597,7 +602,7 @@ fig = px.line(
 # Mettre à jour le design du graphique
 fig.update_layout(
     title=dict(
-        text="Évolution temporelle des accidents en 2023",
+        text=" ",
         font=dict(size=20, color='#f7f7f7', family="Arial")  # Titre en blanc
     ),
     xaxis=dict(
@@ -629,13 +634,14 @@ st.plotly_chart(fig, use_container_width=True)
 
 data = accidents_motorises_idf['heure']
 
+st.markdown("### Distribution des Accidents par Heure de la Journée ")
 
 # Créer un histogramme interactif avec Plotly
 fig = px.histogram(
     data, 
     x=data, 
     nbins=24,  # 24 bins pour les heures de la journée
-    title="Distribution des Accidents par Heure de la Journée",
+    title=" ",
     labels={'x': 'Heure', 'y': 'Fréquence'},  # Étiquettes des axes
     color_discrete_sequence=["#FF5733"]  # Couleur personnalisée
 )
@@ -665,7 +671,7 @@ fig = px.line(
     x='mois',
     y='count',
     color='grav_desc',
-    title="Évolution Mensuelle des Accidents par Gravité",
+    title=" ",
     markers=True,
     line_shape='spline',
     color_discrete_sequence=px.colors.qualitative.Dark24
