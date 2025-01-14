@@ -8,6 +8,7 @@ from streamlit_folium import st_folium
 import seaborn as sns
 import matplotlib.pyplot as plt
 import geopandas as gpd
+import plotly.graph_objects as go
 
 st.title("Accidents de la route en 2023")
 
@@ -316,19 +317,6 @@ fig = px.scatter_mapbox(
 
 fig.update_layout(legend_title="Gravité")
 
-st.markdown(
-    """
-    ### Observations géographiques :
-    
-    - Une **forte proportion** d'accidents ayant pour gravité **indemne** et **tué** est observée dans l'ensemble du territoire.
-    
-    - La région parisienne (**Île-de-France**) montre une **concentration particulièrement élevée** d'accidents avec des usagers **indemnes**.
-    
-    - **Aucune tendance géographique claire** n'apparaît pour les autres niveaux de gravité (**blessé léger** ou **blessé hospitalisé**), car ils semblent **uniformément répartis**.
-    
-    """
-)
-
 # Affichage de la carte dans Streamlit
 st.plotly_chart(fig, use_container_width=True)
 
@@ -532,6 +520,8 @@ st.markdown("## 📊 Évolution Temporelle des Accidents")
 
 # 4. Jour de la Semaine
 st.markdown("### Distribution des Accidents par Jour de la Semaine")
+# Réorganiser les jours de la semaine
+
 jours_ordre = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
 stacked_data = pd.crosstab(
     accidents_motorises_idf["jour_semaine"],
@@ -562,6 +552,8 @@ ax.legend(
 plt.xticks(fontsize=12, rotation=45)
 plt.yticks(fontsize=12)
 st.pyplot(fig)
+
+
 # Préparer les données temporelles
 time_analysis = accidents_motorises.groupby(['mois', 'jour']).size().reset_index(name='count')
 time_analysis['date'] = pd.to_datetime(
@@ -588,7 +580,7 @@ fig = px.line(
 fig.update_layout(
     title=dict(
         text="Évolution temporelle des accidents en 2023",
-        font=dict(size=20, color="#333", family="Arial")
+        font=dict(size=20, color='#f7f7f7', family="Arial")
     ),
     xaxis=dict(
         title="Date",
@@ -610,20 +602,37 @@ fig.update_layout(
 # Afficher le graphique
 st.plotly_chart(fig, use_container_width=True)
 
-fig, ax = plt.subplots(figsize=(10, 6))
-sns.histplot(
-    accidents_motorises_idf['heure'],
-    kde=True,  # Ajout de la courbe de densité
-    bins=24,
-    color="#FF5733",
-    alpha=0.8,
-    ax=ax
+data = accidents_motorises_idf['heure']
+
+
+# Créer un histogramme interactif avec Plotly
+fig = px.histogram(
+    data, 
+    x=data, 
+    nbins=24,  # 24 bins pour les heures de la journée
+    title="Distribution des Accidents par Heure de la Journée",
+    labels={'x': 'Heure', 'y': 'Fréquence'},  # Étiquettes des axes
+    color_discrete_sequence=["#FF5733"]  # Couleur personnalisée
 )
-ax.set_title("Distribution des Accidents par Heure de la Journée", fontsize=16, fontweight='bold')
-ax.set_xlabel("Heure", fontsize=14)
-ax.set_ylabel("Fréquence", fontsize=14)
-plt.xticks(range(0, 24, 2))
-st.pyplot(fig)
+
+# Ajouter des options de style
+fig.update_layout(
+    title=dict(
+        font=dict(size=20, family='Arial', color='#f7f7f7')
+    ),
+    xaxis=dict(
+        title="Heure",
+        tickmode='linear',
+        tick0=0,
+        dtick=2  # Affiche une graduation toutes les deux heures
+    ),
+    yaxis=dict(title="Fréquence"),
+    bargap=0.1  # Espacement entre les barres
+)
+
+# Afficher avec Streamlit
+st.plotly_chart(fig)
+
 
 monthly_data = accidents_motorises.groupby(['mois', 'grav_desc']).size().reset_index(name='count')
 fig = px.line(
@@ -635,6 +644,12 @@ fig = px.line(
     markers=True,
     line_shape='spline',
     color_discrete_sequence=px.colors.qualitative.Dark24
+)
+
+fig.update_layout(
+    title=dict(
+        font=dict(size=20, family='Arial', color='#f7f7f7')
+    )
 )
 st.plotly_chart(fig, use_container_width=True)
 
