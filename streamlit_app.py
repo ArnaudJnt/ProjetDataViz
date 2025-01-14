@@ -10,53 +10,48 @@ import matplotlib.pyplot as plt
 import geopandas as gpd
 import plotly.graph_objects as go
 
-st.title("Accidents de la route en 2023")
+st.set_page_config(page_title="Dashboard - Accidents 2023", layout="wide")
+
+# Titre principal
+st.markdown(
+    """
+    <div style="background-color:#ffcc66;padding:15px;border-radius:10px;text-align:center;">
+    <h1 style="color:#333;"> Tableau de bord : Accidents de la route 2023 </h1>
+    </div>
+    """, unsafe_allow_html=True
+)
 
 st.sidebar.title("Sommaire")
 st.sidebar.markdown("""
 - [🏠 Introduction](#introduction)
-- [📂 Chargement des Données](#chargement-des-données)
+- [📂 Chargement des Données](#chargement-des-donnees)
 - [📝 Description des Variables](#description-des-variables)
 - [🌍 Carte Interactive](#carte-interactive)
 - [🔍 Analyse Descriptive](#analyse-descriptive)
-- [📊 Évolution Temporelle des Accidents](#evolution-temporelle)
-""")
+- [📊 Évolution Temporelle des Accidents](#evolution-temporelle-des-accidents)
+""", unsafe_allow_html=True)
 
-
+st.markdown("<a id='introduction'></a>", unsafe_allow_html=True)
 st.markdown("## 🏠 Introduction")
 st.markdown("""
 Les données utilisées proviennent de **l'INSEE** et concernent les **accidents de la route en France en 2023**. Elles sont organisées de la façon suivante :
 
 📂 Caractéristiques (caract-2023.csv)
-- Ce fichier contient des informations générales sur chaque accident, telles que :
-    - **Date** et **heure** de l'accident,
-    - **Conditions de luminosité** (lum),
-    - **Conditions atmosphériques** (atm),
-    - **Type de collision** (col).
+- Ce fichier contient des informations générales sur chaque accident 
 
 🌍 Lieux (lieux-2023.csv)
-- Ce fichier décrit les caractéristiques du lieu de l’accident :
-    - **Catégorie de route** (catr),
-    - **Profil de la route** (prof),
-    - **État de la surface** (surf),
-    - **Localisation précise de l’accident** (situ).
+- Ce fichier décrit les caractéristiques du lieu de l’accident 
 
 🚗 Véhicules (vehicules-2023.csv)
-- Ce fichier recense les informations sur les véhicules impliqués dans chaque accident :
-    - **Catégorie du véhicule** (catv),
-    - **Point initial du choc** (choc),
-    - **Manœuvre réalisée avant l’accident** (manv).
+- Ce fichier recense les informations sur les véhicules impliqués dans chaque accident 
 
 👥 Usagers (usagers-2023.csv)
-- Ce fichier contient des informations sur les usagers impliqués dans les accidents, incluant :
-    - Leur **position dans le véhicule** (place),
-    - Leur **catégorie** (catu),
-    - Leur **gravité** (grav),
-    - Leur **sexe** (sexe).
+- Ce fichier contient des informations sur les usagers impliqués dans les accidents
 """)
 
 
 ## Chargement des données
+st.markdown("<a id='chargement-des-donnees'></a>", unsafe_allow_html=True)
 st.markdown("## 📂 Chargement des Données")
 # Utiliser le cache pour optimiser les performances lors du chargement des fichiers
 @st.cache_data
@@ -108,7 +103,7 @@ if caract_df is not None and lieux_df is not None and vehicules_df is not None a
 else:
     st.error("Un ou plusieurs fichiers n'ont pas pu être chargés. Vérifiez leur emplacement ou leur contenu.")
 
-
+st.markdown("<a id='description-des-variables'></a>", unsafe_allow_html=True)
 st.markdown("## 📝 Description des Variables")
 # Dictionnaire contenant les descriptions des variables pour chaque fichier
 descriptions = {
@@ -281,7 +276,7 @@ if file_choice:
     for variable, description in descriptions[file_choice].items():
         st.markdown(f"**{variable}** : {description}")
 
-
+st.markdown("<a id='carte-interactive'></a>", unsafe_allow_html=True)
 st.markdown("## 🌍 Carte Interactive")
 st.markdown("### Carte de France")
 # Ajout de la description de la gravité
@@ -308,7 +303,6 @@ fig = px.scatter_mapbox(
         "Blessé hospitalisé": "#ff9933",
         "Tué": "#ff3300"
     },
-    title="Répartition géographique des accidents motorisés par gravité",
     mapbox_style="open-street-map",
     zoom=12,
     height=800,
@@ -418,7 +412,7 @@ jours_traduction = {
 accidents_motorises_idf['jour_semaine'] = accidents_motorises_idf['jour_semaine_en'].map(jours_traduction)
 
 
-
+st.markdown("<a id='analyse-descriptive'></a>", unsafe_allow_html=True)
 st.markdown("## 🔍 Analyse Descriptive")
 
 # Dictionnaire pour l'affichage des variables
@@ -439,15 +433,17 @@ fig = px.pie(
     grav_count,
     values='Nombre d\'accidents',
     names='Gravité',
-    title="Répartition des Accidents par Gravité",
     color_discrete_sequence=px.colors.sequential.RdBu,
     template="presentation",
     hole=0.4  # Donut chart
 )
 st.plotly_chart(fig, use_container_width=True)
 # Analyse des différentes options (sans menu déroulant)
+
 # 1. Plage Horaire
 st.markdown("### Répartition des Accidents par Plage Horaire et Gravité")
+# Création des données pour la heatmap
+# Création des données pour la heatmap
 heatmap_data = pd.crosstab(
     accidents_motorises_idf["plage_horaire"],
     accidents_motorises_idf["grav_desc"],
@@ -456,27 +452,30 @@ heatmap_data = pd.crosstab(
 
 heatmap_data = heatmap_data.reindex(["Matin (6h-12h)", "Après-midi (12h-18h)", "Soir (18h-6h)"])
 
-fig, ax = plt.subplots(figsize=(10, 6))
-sns.heatmap(
+# Création de la heatmap avec Plotly
+fig = px.imshow(
     heatmap_data,
-    annot=True,
-    fmt=".2f",
-    cmap="YlOrRd",
-    cbar_kws={'label': 'Proportion'},
-    linewidths=0.5,
-    ax=ax
+    text_auto=".2f",
+    labels=dict(x="Gravité", y="Plage Horaire", color="Proportion"),
+    color_continuous_scale="YlOrRd"
 )
-ax.set_title("Répartition des Accidents par Gravité et Plage Horaire", fontsize=16, fontweight='bold')
-ax.set_xlabel("Gravité", fontsize=14)
-ax.set_ylabel("Plage Horaire", fontsize=14)
-plt.xticks(fontsize=12, rotation=45)
-plt.yticks(fontsize=12)
-st.pyplot(fig)
 
+# Personnalisation du thème noir
+fig.update_layout(
+    title = " ",
+    xaxis=dict(tickangle=-45, title_font=dict(size=14, color='white'), tickfont=dict(color='white')),
+    yaxis=dict(title_font=dict(size=14, color='white'), tickfont=dict(color='white')),
+    plot_bgcolor="black",
+    paper_bgcolor="black",
+    font=dict(color="white")
+)
+
+# Affichage dans Streamlit
+st.plotly_chart(fig, use_container_width=True)
 
 
 # 3. Département
-st.markdown("### Répartition des Accidents par Département et Gravité")
+# Création des données pour la heatmap
 heatmap_data = pd.crosstab(
     accidents_motorises_idf["dep"],
     accidents_motorises_idf["grav_desc"],
@@ -495,33 +494,38 @@ heatmap_data.index = heatmap_data.index.map({
     95: "Val-d'Oise"
 })
 
-fig, ax = plt.subplots(figsize=(10, 6))
-sns.heatmap(
+# Création de la heatmap avec Plotly
+fig = px.imshow(
     heatmap_data,
-    annot=True,
-    fmt=".2f",
-    cmap="YlOrRd",
-    cbar_kws={'label': 'Proportion'},
-    linewidths=0.5,
-    ax=ax
+    text_auto=".2f",  # Formater les valeurs avec 2 décimales
+    labels=dict(x="Gravité", y="Département", color="Proportion"),
+    color_continuous_scale="YlOrRd"
 )
-ax.set_title("Répartition des Accidents par Gravité et Département", fontsize=16, fontweight='bold')
-ax.set_xlabel("Gravité", fontsize=14)
-ax.set_ylabel("Département", fontsize=14)
-plt.xticks(fontsize=12, rotation=45)
-plt.yticks(fontsize=12)
-st.pyplot(fig)
+
+# Personnalisation du thème noir
+fig.update_layout(
+    title=" ",  # Supprime le titre
+    xaxis=dict(tickangle=-45, title_font=dict(size=14, color='white'), tickfont=dict(color='white')),
+    yaxis=dict(title_font=dict(size=14, color='white'), tickfont=dict(color='white')),
+    plot_bgcolor="black",  # Fond noir pour la zone des graphiques
+    paper_bgcolor="black",  # Fond noir pour tout le fond du graphique
+    font=dict(color="white")  # Texte en blanc
+)
+
+# Affichage dans Streamlit
+st.plotly_chart(fig, use_container_width=True)
 
 
 
 
 # Evolution temporelle des accidents
+st.markdown("<a id='evolution-temporelle-des-accidents'></a>", unsafe_allow_html=True)
 st.markdown("## 📊 Évolution Temporelle des Accidents")
 
 # 4. Jour de la Semaine
 st.markdown("### Distribution des Accidents par Jour de la Semaine")
-# Réorganiser les jours de la semaine
 
+# Réorganiser les jours de la semaine
 jours_ordre = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
 stacked_data = pd.crosstab(
     accidents_motorises_idf["jour_semaine"],
@@ -531,7 +535,14 @@ stacked_data = stacked_data.reindex(jours_ordre)
 
 colors = ["#ffcc66", "#ff9966", "#FFFF00", "#ff3333"]
 
+# Création de la figure
 fig, ax = plt.subplots(figsize=(12, 6))
+
+# Définir le fond noir
+fig.patch.set_facecolor('black')  # Fond noir pour la figure
+ax.set_facecolor('black')  # Fond noir pour le graphique
+
+# Traçage des données empilées
 stacked_data.plot(
     kind='bar',
     stacked=True,
@@ -539,19 +550,27 @@ stacked_data.plot(
     color=colors,
     ax=ax
 )
-ax.set_title("Distribution des Accidents par Jour de la Semaine", fontsize=16, fontweight='bold')
-ax.set_xlabel("Jour de la Semaine", fontsize=14)
-ax.set_ylabel("Nombre d'Accidents", fontsize=14)
+
+# Personnalisation des titres et axes
+ax.set_title(" ", fontsize=16, fontweight='bold', color='white')
+ax.set_xlabel("Jour de la Semaine", fontsize=14, color='white')
+ax.set_ylabel("Nombre d'Accidents", fontsize=14, color='white')
 ax.legend(
     title="Gravité",
     fontsize=12,
     title_fontsize=14,
     loc='upper left',
-    bbox_to_anchor=(1.05, 1)
+    bbox_to_anchor=(1.05, 1),
+    labelcolor='white'  # Couleur des labels de légende
 )
-plt.xticks(fontsize=12, rotation=45)
-plt.yticks(fontsize=12)
+
+# Ajustement des couleurs des ticks
+plt.xticks(fontsize=12, rotation=45, color='white')
+plt.yticks(fontsize=12, color='white')
+
+# Affichage dans Streamlit
 st.pyplot(fig)
+
 
 
 # Préparer les données temporelles
@@ -563,7 +582,7 @@ time_analysis['date'] = pd.to_datetime(
 # Trier les données par date
 time_analysis = time_analysis.sort_values('date')
 
-# Créer le graphique avec Plotly
+## Créer le graphique avec Plotly
 fig = px.line(
     time_analysis,
     x='date',
@@ -575,32 +594,38 @@ fig = px.line(
     color_discrete_sequence=["#FF5733"]  # Couleur vibrante
 )
 
-
 # Mettre à jour le design du graphique
 fig.update_layout(
     title=dict(
         text="Évolution temporelle des accidents en 2023",
-        font=dict(size=20, color='#f7f7f7', family="Arial")
+        font=dict(size=20, color='#f7f7f7', family="Arial")  # Titre en blanc
     ),
     xaxis=dict(
         title="Date",
         showgrid=True,
-        gridcolor="rgba(200,200,200,0.3)",
+        gridcolor="rgba(200,200,200,0.3)",  # Couleur discrète pour les lignes de la grille
         tickformat="%b %d",  # Afficher le mois et le jour
-        tickangle=-45
+        tickangle=-45,
+        title_font=dict(color="white"),  # Texte de l'axe X en blanc
+        tickfont=dict(color="white")  # Ticks en blanc
     ),
     yaxis=dict(
         title="Nombre d'accidents",
         showgrid=True,
-        gridcolor="rgba(200,200,200,0.3)"
+        gridcolor="rgba(200,200,200,0.3)",  # Couleur discrète pour les lignes de la grille
+        title_font=dict(color="white"),  # Texte de l'axe Y en blanc
+        tickfont=dict(color="white")  # Ticks en blanc
     ),
-    plot_bgcolor="white",  # Arrière-plan blanc
+    plot_bgcolor="#303030",  # Fond du graphique (gris foncé pour s'aligner sur le thème sombre)
+    paper_bgcolor="#303030",  # Fond de la figure (même couleur que le Dashboard)
+    font=dict(color="white"),  # Couleur du texte
     margin=dict(l=50, r=50, t=80, b=50),
     hovermode="x unified"  # Info survol unifiée
 )
 
 # Afficher le graphique
 st.plotly_chart(fig, use_container_width=True)
+
 
 data = accidents_motorises_idf['heure']
 
